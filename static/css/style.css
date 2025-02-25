@@ -1,0 +1,21 @@
+/* Estilo para sliders verticales */
+.slider-vertical {
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 8px;
+    height: 150px;
+    background-color: #4A5568;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.slider-vertical:hover {
+    opacity: 1;
+}
+.slider-vertical::-webkit-slider-thumb,
+.slider-vertical::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #3182ce;
+    cursor: pointer;
+}

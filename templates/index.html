@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - PrIME</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Estilo para sliders verticales */
+    .slider-vertical {
+      -webkit-appearance: slider-vertical;
+      appearance: slider-vertical;
+      width: 8px;
+      height: 150px;
+      background-color: #4A5568;
+      outline: none;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .slider-vertical:hover {
+      opacity: 1;
+    }
+
+    .slider-vertical::-webkit-slider-thumb,
+    .slider-vertical::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #3182ce;
+      cursor: pointer;
+    }
+  </style>
+  <link rel="icon" href="{{ url_for('static', filename='resources/Logo PrIME 2.png') }}" type="image/png">
+  <!-- iziToast CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/izitoast/dist/css/iziToast.min.css">
+  <!-- iziToast JS -->
+  <script src="https://cdn.jsdelivr.net/npm/izitoast/dist/js/iziToast.min.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-200">
+<div class="flex h-screen">
+  <!-- Sidebar -->
+  <div class="w-64 bg-gray-800 p-6">
+    <img src="{{ url_for('static', filename='resources/Logo PrIME 2.png') }}" alt="PrIME Logo" class="mb-8">
+    <h1 class="text-2xl font-bold text-white mb-8">PRIME Dashboard</h1>
+    <div class="space-y-4">
+      <input type="text" placeholder="Search for..." class="w-full p-2 rounded bg-gray-700 text-gray-200 placeholder-gray-400">
+      <ul class="space-y-2">
+        <li>
+          <a href="#" class="block py-2 px-4 rounded bg-gray-700 hover:bg-gray-600">Dashboard</a>
+        </li>
+        <li>
+          <a href="#" class="block py-2 px-4 rounded hover:bg-gray-600">Analytics</a>
+        </li>
+        <li>
+          <a href="#" class="block py-2 px-4 rounded hover:bg-gray-600">Settings</a>
+        </li>
+      </ul>
+      <button class="mt-6 w-full py-2 rounded bg-red-600 hover:bg-red-700">Log Out</button>
+    </div>
+  </div>
+  <!-- Main Content -->
+  <div class="flex-1 p-8">
+    <h2 class="text-3xl font-semibold mb-6">Sensor Data Visualization & Robot Arm Control</h2>
+    <!-- Sliders para el control del brazo robótico -->
+    <div class="flex gap-4 mb-8">
+      <div class="flex flex-col items-center space-y-4">
+        <label for="servo0">Servo 1</label>
+        <input id="servo0" type="range" min="0" max="180" value="90" class="slider-vertical" onchange="updateServo(0)">
+        <span id="servo0Val">90°</span>
+      </div>
+      <div class="flex flex-col items-center space-y-4">
+        <label for="servo1">Servo 2</label>
+        <input id="servo1" type="range" min="0" max="180" value="90" class="slider-vertical" onchange="updateServo(1)">
+        <span id="servo1Val">90°</span>
+      </div>
+      <div class="flex flex-col items-center space-y-4">
+        <label for="servo2">Servo 3</label>
+        <input id="servo2" type="range" min="0" max="180" value="90" class="slider-vertical" onchange="updateServo(2)">
+        <span id="servo2Val">90°</span>
+      </div>
+      <div class="flex flex-col items-center space-y-4">
+        <label for="servo3">Servo 4</label>
+        <input id="servo3" type="range" min="0" max="180" value="90" class="slider-vertical" onchange="updateServo(3)">
+        <span id="servo3Val">90°</span>
+      </div>
+      <div class="flex flex-col items-center space-y-4">
+        <label for="servo4">Servo 5</label>
+        <input id="servo4" type="range" min="0" max="180" value="90" class="slider-vertical" onchange="updateServo(4)">
+        <span id="servo4Val">90°</span>
+      </div>
+      <div class="flex flex-col items-center space-y-4">
+        <label for="servo5">Servo 6</label>
+        <input id="servo5" type="range" min="0" max="180" value="90" class="slider-vertical" onchange="updateServo(5)">
+        <span id="servo5Val">90°</span>
+      </div>
+    </div>
+    <!-- Botones para ejecutar rutinas -->
+    <div class="flex gap-4 mb-8">
+      <button class="py-2 px-4 bg-blue-600 rounded hover:bg-blue-700" onclick="executeRoutine(0)">Ejecutar Rutina 0</button>
+      <button class="py-2 px-4 bg-blue-600 rounded hover:bg-blue-700" onclick="executeRoutine(1)">Ejecutar Rutina 1</button>
+      <button class="py-2 px-4 bg-blue-600 rounded hover:bg-blue-700" onclick="executeRoutine(2)">Ejecutar Rutina 2</button>
+      <button class="py-2 px-4 bg-green-600 rounded hover:bg-green-700" onclick="moveServos()">Mover</button>
+    </div>
+    <!-- Contenedor para gráficos de sensores -->
+    <div id="charts" class="flex flex-col gap-6">
+      <canvas id="temperatureChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="humidityChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="lightChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="accelXChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="accelYChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="accelZChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="gyroXChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="gyroYChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+      <canvas id="gyroZChart" class="w-full p-8 bg-gray-800 rounded-lg"></canvas>
+    </div>
+  </div>
+</div>
+<script>
+  const serverIp = "http://localhost:5000";
+  const robotArmIp = "http://187.211.114.228"; // Reemplazar con la IP del brazo robótico
+  const servoPositions = [90, 90, 90, 90, 90, 90]; // Posiciones iniciales de los servos
+  const labels = [];
+  const tempData = [];
+  const humidityData = [];
+  const lightData = [];
+  const accelXData = [];
+  const accelYData = [];
+  const accelZData = [];
+  const gyroXData = [];
+  const gyroYData = [];
+  const gyroZData = [];
+  const minMaxValues = {
+    temperature: {
+      min: 20,
+      max: 25
+    },
+    humidity: {
+      min: 40,
+      max: 60
+    },
+    light: {
+      min: 0,
+      max: 200
+    },
+    accelX: {
+      min: 0,
+      max: 15000
+    },
+    accelY: {
+      min: 0,
+      max: 15000
+    },
+    accelZ: {
+      min: 0,
+      max: 15000
+    },
+    gyroX: {
+      min: -20000,
+      max: 20000
+    },
+    gyroY: {
+      min: -20000,
+      max: 20000
+    },
+    gyroZ: {
+      min: -20000,
+      max: 20000
+    }
+  };
+
+  function createChart(ctx, label, data, minMax) {
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: label,
+          data: data,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          fill: true,
+          pointBackgroundColor: function(context) {
+            const value = context.raw; // Valor del punto actual
+            if (value < minMax.min) return '#FFD700'; // Amarillo si menor
+            if (value > minMax.max) return '#FF0000'; // Rojo si mayor
+            return 'rgba(75, 192, 192, 1)'; // Normal
+          }
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            min: minMax.min,
+            max: minMax.max,
+            title: {
+              display: true,
+              text: label
+            }
+          }
+        }
+      }
+    });
+  }
+  const tempChart = createChart(document.getElementById('temperatureChart'), 'Temperature', tempData, minMaxValues.temperature);
+  const humidityChart = createChart(document.getElementById('humidityChart'), 'Humidity', humidityData, minMaxValues.humidity);
+  const lightChart = createChart(document.getElementById('lightChart'), 'Light', lightData, minMaxValues.light);
+  const accelXChart = createChart(document.getElementById('accelXChart'), 'Accel X', accelXData, minMaxValues.accelX);
+  const accelYChart = createChart(document.getElementById('accelYChart'), 'Accel Y', accelYData, minMaxValues.accelY);
+  const accelZChart = createChart(document.getElementById('accelZChart'), 'Accel Z', accelZData, minMaxValues.accelZ);
+  const gyroXChart = createChart(document.getElementById('gyroXChart'), 'Gyro X', gyroXData, minMaxValues.gyroX);
+  const gyroYChart = createChart(document.getElementById('gyroYChart'), 'Gyro Y', gyroYData, minMaxValues.gyroY);
+  const gyroZChart = createChart(document.getElementById('gyroZChart'), 'Gyro Z', gyroZData, minMaxValues.gyroZ);
+
+  function fetchData() {
+    fetch(serverIp + '/getData?num=20')
+        .then(response => response.json())
+        .then(data => {
+            const latestData = data[data.length - 1]; // Último registro
+            labels.push(new Date(latestData.created_at).toLocaleTimeString());
+
+            // Datos de sensores
+            const sensors = {
+                temperature: latestData.data.temperature,
+                humidity: latestData.data.humidity,
+                light: latestData.data.light,
+                accelX: latestData.data.accelX,
+                accelY: latestData.data.accelY,
+                accelZ: latestData.data.accelZ,
+                gyroX: latestData.data.gyroX,
+                gyroY: latestData.data.gyroY,
+                gyroZ: latestData.data.gyroZ
+            };
+
+            // Verificar valores y mostrar alerta si es necesario
+            Object.keys(sensors).forEach(sensor => {
+                checkThresholdsAndAlert(sensor, sensors[sensor], minMaxValues[sensor]);
+            });
+
+            // Guardar datos en los arreglos
+            tempData.push(sensors.temperature);
+            humidityData.push(sensors.humidity);
+            lightData.push(sensors.light);
+            accelXData.push(sensors.accelX);
+            accelYData.push(sensors.accelY);
+            accelZData.push(sensors.accelZ);
+            gyroXData.push(sensors.gyroX);
+            gyroYData.push(sensors.gyroY);
+            gyroZData.push(sensors.gyroZ);
+
+            // Limitar a 20 puntos
+            if (labels.length > 20) {
+                labels.shift();
+                tempData.shift();
+                humidityData.shift();
+                lightData.shift();
+                accelXData.shift();
+                accelYData.shift();
+                accelZData.shift();
+                gyroXData.shift();
+                gyroYData.shift();
+                gyroZData.shift();
+            }
+
+            // Actualizar gráficos
+            tempChart.update();
+            humidityChart.update();
+            lightChart.update();
+            accelXChart.update();
+            accelYChart.update();
+            accelZChart.update();
+            gyroXChart.update();
+            gyroYChart.update();
+            gyroZChart.update();
+        })
+        .catch(error => console.error('Error fetching data:', error));
+}
+
+  /*
+      async function moveServos() {
+      const body = {}; // Crear un objeto para el cuerpo del POST
+      servoPositions.forEach((position, index) => {
+          body[index + 1] = position; // Agregar todos los servos al objeto
+      });
+
+      console.log(body);
+
+      try {
+          const response = await fetch(`${robotArmIp}/move`, {
+              method: "POST",
+              mode: 'no-cors', // Añadir este modo
+              headers: {
+                  "Content-Type": "application/json",
+                  "Accept": "application/json"
+              },
+              body: JSON.stringify(body)
+          });
+
+          if (!response.ok) {
+              console.error("Error en la respuesta del brazo:", response.statusText);
+          }
+      } catch (error) {
+          console.error("Error al mover servos:", error);
+      }
+  }
+  */
+  // Llamar a fetchData cada segundo
+  setInterval(fetchData, 1000);
+  // Actualizar posición de servo
+  function updateServo(servo) {
+    const position = document.getElementById(`servo${servo}`).value;
+    servoPositions[servo] = position; // Actualiza la posición del servo
+    document.getElementById(`servo${servo}Val`).textContent = `${position}°`; // Actualiza el texto del valor
+  }
+  async function moveServos() {
+    // Crear el arreglo de posiciones en el formato requerido
+    const positionsArray = servoPositions.map(position => position).join(",");
+    const queryParam = `data=[${positionsArray}]`; // Construir el parámetro de consulta `data`
+    try {
+      // Enviar la solicitud POST con el parámetro `data` en la URL
+      const response = await fetch(`${robotArmIp}/move?${queryParam}`, {
+        method: "GET",
+        mode: 'no-cors', // Añadir este modo para evitar problemas de CORS
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        }
+      });
+      if (!response.ok) {
+        console.error("Error en la respuesta del brazo:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error al mover servos:", error);
+    }
+  }
+  // Añadir eventos a los sliders
+  document.querySelectorAll('input[type="range"]').forEach((slider, index) => {
+    slider.addEventListener('input', () => {
+      servoPositions[index] = slider.value; // Actualizar la posición del servo
+      document.getElementById(`servo${index}Val`).textContent = `${slider.value}°`; // Actualizar el valor mostrado
+      moveServos(); // Llamar a moveServos sin recargar la página
+    });
+  });
+  async function executeRoutine(routineNumber) {
+    try {
+      await fetch(`${robotArmIp}/execute?routine=${routineNumber}`, {
+        method: "GET",
+        mode: 'no-cors'
+      });
+    } catch (error) {
+      console.error("Error al ejecutar la rutina:", error);
+    }
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeCharts();
+    fetchData();
+    setInterval(fetchData, 10000); // Actualizar datos cada 10 segundos
+  });
+
+  const activeAlerts = {}; // Objeto para almacenar los IDs de las alertas activas
+
+function checkThresholdsAndAlert(sensor, value, minMax) {
+    let icon = "✔";  // Dentro del rango (verde, sin alerta)
+    let color = "green";
+    let title = `${icon} ${sensor} en rango`;
+
+    if (value < minMax.min) {
+        icon = "⚠️"; // Advertencia si es menor
+        color = "yellow";
+        title = `${icon} ${sensor} por debajo del mínimo`;
+    } else if (value > minMax.max) {
+        icon = "❌"; // Error si es mayor
+        color = "red";
+        title = `${icon} ${sensor} por encima del máximo`;
+    }
+
+    // Si está dentro del rango, eliminar la alerta si existía
+    if (color === "green") {
+        if (activeAlerts[sensor]) {
+            iziToast.hide({ transitionOut: "fadeOut" }, activeAlerts[sensor]);
+            delete activeAlerts[sensor];
+        }
+        return; // No mostrar alerta si está en rango
+    }
+
+    // Eliminar alerta anterior si existe
+    if (activeAlerts[sensor]) {
+        iziToast.hide({ transitionOut: "fadeOut" }, activeAlerts[sensor]);
+    }
+
+    // Mostrar nueva alerta y almacenar su ID
+    activeAlerts[sensor] = iziToast.show({
+        title: title,
+        message: `Valor: ${value} | Rango: [${minMax.min} - ${minMax.max}]`,
+        backgroundColor: color,
+        position: "topRight",
+        timeout: 1000,  // La alerta se elimina después de 1 segundo (1000ms)
+        close: false,  // No mostrar botón de cerrar
+    });
+}
+</script>
+</body>
+</html>
